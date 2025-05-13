@@ -1,0 +1,27 @@
+#######################################
+# Syntax Coloring Map For DIYables_TFT_Shield
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+DIYables_TFT_Shield	KEYWORD1
+
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+getDisplayWidth	KEYWORD2
+getDisplayHeight	KEYWORD2
+getCharWidth	KEYWORD2
+getTextWidth	KEYWORD2
+
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+
+
