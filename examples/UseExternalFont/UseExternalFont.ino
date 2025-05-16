@@ -11,24 +11,11 @@
 #include <DIYables_TFT_Shield.h>
 #include <Fonts/FreeSansBold12pt7b.h>
 
-#define BLACK 0x0000
-#define BLUE 0x001F
-#define RED 0xF800
-#define GREEN 0x07E0
-#define CYAN 0x07FF
-#define MAGENTA 0xF81F
-#define YELLOW 0xFFE0
-#define WHITE 0xFFFF
-#define GREY 0x8410
-#define ORANGE 0xE880
+#define MAGENTA   DIYables_TFT::colorRGB(255, 0, 255)
+#define WHITE     DIYables_TFT::colorRGB(255, 255, 255)
 
 DIYables_TFT_ILI9486_Shield TFT_display;
 
-int img_width = 120;
-int img_height = 53;
-
-uint16_t SCREEN_WIDTH;
-uint16_t SCREEN_HEIGHT;
 
 void setup() {
   Serial.println(F("Arduino TFT LCD Display - Use external font"));
@@ -38,11 +25,6 @@ void setup() {
 
   // Set the rotation (0 to 3)
   TFT_display.setRotation(1);  // Rotate screen 90 degrees
-
-  // After rotation, update screen dimensions
-  SCREEN_WIDTH = TFT_display.width();
-  SCREEN_HEIGHT = TFT_display.height();
-
   TFT_display.fillScreen(WHITE);
 
   // Set text color and size

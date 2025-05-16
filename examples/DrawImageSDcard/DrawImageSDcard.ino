@@ -11,16 +11,7 @@
 #include <DIYables_TFT_Shield.h>
 #include <SD.h>
 
-#define BLACK 0x0000
-#define BLUE 0x001F
-#define RED 0xF800
-#define GREEN 0x07E0
-#define CYAN 0x07FF
-#define MAGENTA 0xF81F
-#define YELLOW 0xFFE0
-#define WHITE 0xFFFF
-#define GREY 0x8410
-#define ORANGE 0xE880
+#define WHITE     DIYables_TFT::colorRGB(255, 255, 255)
 
 #define BUFFPIXEL 20  // Buffer size remains the same
 
@@ -197,7 +188,7 @@ void drawBMP(const char *filename, int x, int y) {
         uint8_t b = sdbuffer[i * 3];
         uint8_t g = sdbuffer[i * 3 + 1];
         uint8_t r = sdbuffer[i * 3 + 2];
-        color = TFT_display.color565(r, g, b);
+        color = DIYables_TFT::colorRGB(r, g, b);
 
         // Draw pixel on screen if within bounds
         if ((x + col + i) < SCREEN_WIDTH && (y + row) < SCREEN_HEIGHT) {

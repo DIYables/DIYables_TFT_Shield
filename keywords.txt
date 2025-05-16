@@ -9,6 +9,7 @@
 DIYables_TFT_Shield	KEYWORD1
 DIYables_TFT_ILI9486_Shield	KEYWORD1
 TFT_display	KEYWORD1
+DIYables_TFT	KEYWORD1
 
 
 #######################################

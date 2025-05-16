@@ -11,16 +11,7 @@
 #include <DIYables_TFT_Shield.h>
 #include "bitmap.h"
 
-#define BLACK 0x0000
-#define BLUE 0x001F
-#define RED 0xF800
-#define GREEN 0x07E0
-#define CYAN 0x07FF
-#define MAGENTA 0xF81F
-#define YELLOW 0xFFE0
-#define WHITE 0xFFFF
-#define GREY 0x8410
-#define ORANGE 0xE880
+#define WHITE     DIYables_TFT::colorRGB(255, 255, 255)
 
 DIYables_TFT_ILI9486_Shield TFT_display;
 

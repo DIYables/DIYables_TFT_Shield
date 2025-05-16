@@ -57,3 +57,6 @@ Tested Hardware
 | Arduino Mega            |   ✅   | Fully supported                            |
 | Arduino Giga            |   ✅   | Fully supported         |
 | [DIYables R3 Mega328P Development Board](https://www.amazon.com/dp/B0DQGBXR1R) |   ✅   | Fully supported          |
+
+**Note**: This library is designed for the [DIYables 3.5 Inch ILI9486 TFT LCD Display Screen Shield (non-touch)](https://www.amazon.com/dp/B0DLMV7NTK). If you're using the [DIYables 3.5 Inch ILI9488 TFT LCD Display Screen Shield (with touch)](https://www.amazon.com/dp/B0DQ3NQ3LW), please use the [DIYables TFT Touch Shield Library](https://github.com/DIYables/DIYables_TFT_Touch_Shield) instead.
+
