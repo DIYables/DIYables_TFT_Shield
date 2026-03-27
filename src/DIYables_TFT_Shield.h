@@ -85,34 +85,44 @@
 
 #elif defined(__SAM3X8E__)
 // Due (SAM3X8E)
-// Data pins: PB25-26, PC1-6
-// Control pins: PA22-25, PB14
+// Data pins: D8=PC22, D9=PC21, D2=PB25, D3=PC28, D4=PC26, D5=PC25, D6=PC24, D7=PC23
+// Control pins: A0(RD)=PA16, A1(WR)=PA24, A2(CD)=PA23, A3(CS)=PA22, A4(RST)=PA6
+#define RD_PORT    PIOA
+#define RD_PIN     16
+#define WR_PORT    PIOA
+#define WR_PIN     24
+#define CD_PORT    PIOA
+#define CD_PIN     23
+#define CS_PORT    PIOA
+#define CS_PIN     22
+#define RESET_PORT PIOA
+#define RESET_PIN  6
+
+#define DUE_BMASK (1UL<<25)
+#define DUE_CMASK ((1UL<<21)|(1UL<<22)|(1UL<<23)|(1UL<<24)|(1UL<<25)|(1UL<<26)|(1UL<<28))
 #define WRITE_8(val) do { \
-  REG_PIOB_SODR = ((val & 0x03) << 25); \
-  REG_PIOB_CODR = ((~val & 0x03) << 25); \
-  REG_PIOC_SODR = ((val & 0xFC) << 1); \
-  REG_PIOC_CODR = ((~val & 0xFC) << 1); \
+  PIOB->PIO_CODR = DUE_BMASK; \
+  PIOC->PIO_CODR = DUE_CMASK; \
+  PIOB->PIO_SODR = (((val) & (1<<2)) ? (1UL<<25) : 0); \
+  PIOC->PIO_SODR = \
+    (((val) & (1<<0)) ? (1UL<<22) : 0) | \
+    (((val) & (1<<1)) ? (1UL<<21) : 0) | \
+    (((val) & (1<<3)) ? (1UL<<28) : 0) | \
+    (((val) & (1<<4)) ? (1UL<<26) : 0) | \
+    (((val) & (1<<5)) ? (1UL<<25) : 0) | \
+    (((val) & (1<<6)) ? (1UL<<24) : 0) | \
+    (((val) & (1<<7)) ? (1UL<<23) : 0); \
 } while(0)
-#define SET_WR_LOW() REG_PIOA_CODR = (1 << 23)
-#define SET_WR_HIGH() REG_PIOA_SODR = (1 << 23)
-#define SET_RS_LOW() REG_PIOA_CODR = (1 << 24)
-#define SET_RS_HIGH() REG_PIOA_SODR = (1 << 24)
-#define SET_CS_LOW() REG_PIOA_CODR = (1 << 25)
-#define SET_CS_HIGH() REG_PIOA_SODR = (1 << 25)
-#define SET_RD_HIGH() REG_PIOA_SODR = (1 << 22)
-#define SET_RST_LOW() REG_PIOB_CODR = (1 << 14)
-#define SET_RST_HIGH() REG_PIOB_SODR = (1 << 14)
 #define SET_DATA_DIR_OUT() do { \
-  REG_PIOB_OER = (0x03 << 25); \
-  REG_PIOC_OER = (0x3F << 1); \
+  PIOB->PIO_OER = DUE_BMASK; \
+  PIOC->PIO_OER = DUE_CMASK; \
 } while(0)
 #define SET_CONTROL_DIR_OUT() do { \
-  REG_PIOA_OER = (0x0F << 22); \
-  REG_PIOB_OER = (1 << 14); \
+  PIOA->PIO_OER = (1UL<<16)|(1UL<<24)|(1UL<<23)|(1UL<<22)|(1UL<<6); \
 } while(0)
-#define PIN_LOW(p, b) *(&p) &= ~(1 << (b))
-#define PIN_HIGH(p, b) *(&p) |= (1 << (b))
-#define PIN_OUTPUT(p, b) *(&p + 1) |= (1 << (b))
+#define PIN_LOW(p, b) (p)->PIO_CODR = (1UL << (b))
+#define PIN_HIGH(p, b) (p)->PIO_SODR = (1UL << (b))
+#define PIN_OUTPUT(p, b) (p)->PIO_OER = (1UL << (b))
 
 
 #elif defined(ARDUINO_UNOR4_MINIMA)
@@ -221,8 +231,162 @@
 #define PIN_HIGH(port, pin)  ((port)->PODR |=  (1 << (pin)))
 #define PIN_OUTPUT(port, pin) ((port)->PDR |= (1 << (pin)))
 
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+// For this board: https://diyables.io/products/esp32-s3-development-board-with-esp32-s3-wroom-1-n16r8-wifi-bluetooth-uno-compatible-form-factor-works-with-arduino-ide
+// --- ESP32-S3 Uno Port Manipulation ---
+#include "soc/gpio_reg.h"
+#include "soc/gpio_struct.h"
+
+// Data pins mapping for ESP32-S3 Uno
+#undef D0_PIN
+#undef D1_PIN
+#undef D2_PIN
+#undef D3_PIN
+#undef D4_PIN
+#undef D5_PIN
+#undef D6_PIN
+#undef D7_PIN
+#define D0_PIN 21
+#define D1_PIN 46
+#define D2_PIN 18
+#define D3_PIN 17
+#define D4_PIN 19
+#define D5_PIN 20
+#define D6_PIN 3
+#define D7_PIN 14
+
+// Control pins mapping
+#define RD_PORT      0 // Virtual port identifier
+#define RD_PIN       2 // IO2 (A0)
+#define WR_PORT      0
+#define WR_PIN       1 // IO1 (A1)
+#define CD_PORT      0
+#define CD_PIN       7 // IO7 (A2)
+#define CS_PORT      0
+#define CS_PIN       6 // IO6 (A3)
+#define RESET_PORT   0
+#define RESET_PIN    5 // IO5 (A4)
+
+// Write 8 bits to the data bus using Fast Register Access
+#define WRITE_8(val) do { \
+    uint32_t set0 = 0, clr0 = 0; \
+    uint32_t set1 = 0, clr1 = 0; \
+    if ((val) & 0x01) set0 |= (1UL << 21); else clr0 |= (1UL << 21); \
+    if ((val) & 0x02) set1 |= (1UL << (46 - 32)); else clr1 |= (1UL << (46 - 32)); \
+    if ((val) & 0x04) set0 |= (1UL << 18); else clr0 |= (1UL << 18); \
+    if ((val) & 0x08) set0 |= (1UL << 17); else clr0 |= (1UL << 17); \
+    if ((val) & 0x10) set0 |= (1UL << 19); else clr0 |= (1UL << 19); \
+    if ((val) & 0x20) set0 |= (1UL << 20); else clr0 |= (1UL << 20); \
+    if ((val) & 0x40) set0 |= (1UL << 3);  else clr0 |= (1UL << 3);  \
+    if ((val) & 0x80) set0 |= (1UL << 14); else clr0 |= (1UL << 14); \
+    REG_WRITE(GPIO_OUT_W1TS_REG, set0); \
+    REG_WRITE(GPIO_OUT_W1TC_REG, clr0); \
+    REG_WRITE(GPIO_OUT1_W1TS_REG, set1); \
+    REG_WRITE(GPIO_OUT1_W1TC_REG, clr1); \
+} while (0)
+
+// Set data direction to output
+#define SET_DATA_DIR_OUT() do { \
+    static const uint8_t d_pins[] = {D0_PIN, D1_PIN, D2_PIN, D3_PIN, D4_PIN, D5_PIN, D6_PIN, D7_PIN}; \
+    for (uint8_t i = 0; i < 8; i++) { pinMode(d_pins[i], OUTPUT); } \
+} while (0)
+
+// Set control direction to output
+#define SET_CONTROL_DIR_OUT() do { \
+    pinMode(RD_PIN, OUTPUT); \
+    pinMode(WR_PIN, OUTPUT); \
+    pinMode(CD_PIN, OUTPUT); \
+    pinMode(CS_PIN, OUTPUT); \
+    pinMode(RESET_PIN, OUTPUT); \
+} while (0)
+
+// Standardized Bit-Level control macros
+#define PIN_LOW(port, pin) do { \
+    if ((pin) < 32) REG_WRITE(GPIO_OUT_W1TC_REG, (1UL << (pin))); \
+    else REG_WRITE(GPIO_OUT1_W1TC_REG, (1UL << ((pin) - 32))); \
+} while (0)
+
+#define PIN_HIGH(port, pin) do { \
+    if ((pin) < 32) REG_WRITE(GPIO_OUT_W1TS_REG, (1UL << (pin))); \
+    else REG_WRITE(GPIO_OUT1_W1TS_REG, (1UL << ((pin) - 32))); \
+} while (0)
+
+#define PIN_OUTPUT(port, pin) pinMode(pin, OUTPUT)
+
+#elif defined(ARDUINO_GIGA)
+// Arduino Giga R1 WiFi (STM32H747XI)
+// Data pins: D8=PB8, D9=PB9, D2=PA3, D3=PA2, D4=PJ8, D5=PA7, D6=PD13, D7=PB4
+// Control pins: A0(RD)=PC4, A1(WR)=PC5, A2(CD)=PB0, A3(CS)=PB1, A4(RST)=PC3
+
+#define RD_PORT    GPIOC
+#define RD_PIN     4
+#define WR_PORT    GPIOC
+#define WR_PIN     5
+#define CD_PORT    GPIOB
+#define CD_PIN     0
+#define CS_PORT    GPIOB
+#define CS_PIN     1
+#define RESET_PORT GPIOC
+#define RESET_PIN  3
+
+// Data pins spread across GPIOA (pins 2,3,7), GPIOB (pins 4,8,9), GPIOD (pin 13), GPIOJ (pin 8)
+// GPIOA: bit2=PA3(D3), bit3=PA2(D2 mapped to bit2 in val but PA3), bit5=PA7(D5)
+//   Actually: D2(val bit2)->PA3, D3(val bit3)->PA2, D5(val bit5)->PA7
+// GPIOB: D8(val bit0)->PB8, D9(val bit1)->PB9, D7(val bit7)->PB4
+// GPIOD: D6(val bit6)->PD13
+// GPIOJ: D4(val bit4)->PJ8
+
+#define GIGA_AMASK ((1UL<<2)|(1UL<<3)|(1UL<<7))          // PA2, PA3, PA7
+#define GIGA_BMASK ((1UL<<4)|(1UL<<8)|(1UL<<9))          // PB4, PB8, PB9
+#define GIGA_DMASK (1UL<<13)                               // PD13
+#define GIGA_JMASK (1UL<<8)                                // PJ8
+
+#define WRITE_8(val) do { \
+    uint32_t a_set = 0, a_clr = 0; \
+    uint32_t b_set = 0, b_clr = 0; \
+    uint32_t d_set = 0, d_clr = 0; \
+    uint32_t j_set = 0, j_clr = 0; \
+    /* bit0 (D8) -> PB8 */ \
+    if ((val) & 0x01) b_set |= (1UL<<8);  else b_clr |= (1UL<<8);  \
+    /* bit1 (D9) -> PB9 */ \
+    if ((val) & 0x02) b_set |= (1UL<<9);  else b_clr |= (1UL<<9);  \
+    /* bit2 (D2) -> PA3 */ \
+    if ((val) & 0x04) a_set |= (1UL<<3);  else a_clr |= (1UL<<3);  \
+    /* bit3 (D3) -> PA2 */ \
+    if ((val) & 0x08) a_set |= (1UL<<2);  else a_clr |= (1UL<<2);  \
+    /* bit4 (D4) -> PJ8 */ \
+    if ((val) & 0x10) j_set |= (1UL<<8);  else j_clr |= (1UL<<8);  \
+    /* bit5 (D5) -> PA7 */ \
+    if ((val) & 0x20) a_set |= (1UL<<7);  else a_clr |= (1UL<<7);  \
+    /* bit6 (D6) -> PD13 */ \
+    if ((val) & 0x40) d_set |= (1UL<<13); else d_clr |= (1UL<<13); \
+    /* bit7 (D7) -> PB4 */ \
+    if ((val) & 0x80) b_set |= (1UL<<4);  else b_clr |= (1UL<<4);  \
+    GPIOA->BSRR = a_set | (a_clr << 16); \
+    GPIOB->BSRR = b_set | (b_clr << 16); \
+    GPIOD->BSRR = d_set | (d_clr << 16); \
+    GPIOJ->BSRR = j_set | (j_clr << 16); \
+} while(0)
+
+#define SET_DATA_DIR_OUT() do { \
+    pinMode(8, OUTPUT); pinMode(9, OUTPUT); \
+    pinMode(2, OUTPUT); pinMode(3, OUTPUT); \
+    pinMode(4, OUTPUT); pinMode(5, OUTPUT); \
+    pinMode(6, OUTPUT); pinMode(7, OUTPUT); \
+} while(0)
+
+#define SET_CONTROL_DIR_OUT() do { \
+    pinMode(A0, OUTPUT); pinMode(A1, OUTPUT); \
+    pinMode(A2, OUTPUT); pinMode(A3, OUTPUT); \
+    pinMode(A4, OUTPUT); \
+} while(0)
+
+#define PIN_LOW(port, pin)   (port)->BSRR = (1UL << ((pin) + 16))
+#define PIN_HIGH(port, pin)  (port)->BSRR = (1UL << (pin))
+#define PIN_OUTPUT(port, pin) /* handled by SET_*_DIR_OUT */
+
 #else
-// Fallback for other boards (e.g., Giga, etc.) using Arduino API
+// Fallback for other boards using Arduino API
 // Data pins: D0 (8), D1 (9), D2 (2), D3 (3), D4 (4), D5 (5), D6 (6), D7 (7)
 // Control pins: RD (A0), WR (A1), RS (A2), CS (A3), RST (A4)
 #define ARDUINO_API_USED
@@ -266,10 +430,20 @@ digitalWrite(D7_PIN, (val >> 7) & 0x01);  \
 class DIYables_TFT_ILI9486_Shield : public Adafruit_GFX {
 public:
   DIYables_TFT_ILI9486_Shield();
+  DIYables_TFT_ILI9486_Shield(uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
+                               uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7,
+                               uint8_t rd, uint8_t wr, uint8_t cd, uint8_t cs, uint8_t rst);
   void begin();
   void fillScreen(uint16_t color) override;
+  void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) override;
+  void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color) override;
+  void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) override;
   void setRotation(uint8_t r) override;
   void invertDisplay(bool i) override;
+  void drawRGBBitmap(int16_t x, int16_t y, const uint16_t bitmap[], int16_t w, int16_t h);
+  void drawRGBBitmap(int16_t x, int16_t y, uint16_t *bitmap, int16_t w, int16_t h);
+  void pushColors(uint16_t *data, uint32_t len);
+  void setAddrWindow(int16_t x0, int16_t y0, int16_t x1, int16_t y1);
 
   /**
    * Convert 8-bit R,G,B to 16-bit 565 color format.
@@ -280,13 +454,18 @@ public:
 
   void drawPixel(int16_t x, int16_t y, uint16_t color) override;
 
+protected:
+  uint8_t _d[8];
+  uint8_t _rd, _wr, _cd, _cs, _rst;
+  bool _useAPI;
+
 private:
   inline void reset();
   inline void writeCommand(uint8_t cmd);
   inline void writeData(uint8_t data);
   inline void write8(uint8_t val);
+  inline void writeBus(uint8_t val);
   inline void pulseWR();
-  inline void setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
   void setWriteDir();
   void writeData16(uint16_t data, uint32_t count);
 };

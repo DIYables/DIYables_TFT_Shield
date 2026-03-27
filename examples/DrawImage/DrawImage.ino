@@ -14,6 +14,7 @@
 #define WHITE     DIYables_TFT::colorRGB(255, 255, 255)
 
 DIYables_TFT_ILI9486_Shield TFT_display;
+//DIYables_TFT_ILI9486_Shield TFT_display(8, 9, 2, 3, 4, 5, 6, 7, A0, A1, A2, A3, A4);
 
 int img_width = 120;
 int img_height = 53;
