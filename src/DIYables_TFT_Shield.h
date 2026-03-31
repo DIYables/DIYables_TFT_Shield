@@ -459,7 +459,6 @@ protected:
   uint8_t _rd, _wr, _cd, _cs, _rst;
   bool _useAPI;
 
-private:
   inline void reset();
   inline void writeCommand(uint8_t cmd);
   inline void writeData(uint8_t data);
